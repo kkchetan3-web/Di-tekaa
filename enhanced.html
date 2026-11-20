@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>DI TEKAAAA! — Enhanced Satire Edition</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥊</text></svg>"/>
+<style>
+  :root {
+    --saffron: #ff9933; --green: #138808; --red: #c2312e;
+    --ink: #14101a; --panel: rgba(16,12,22,.86); --panel2: rgba(26,20,34,.92);
+    --accent: #ffb033; --text: #f5ecdf;
+    --mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    --disp: 'Arial Black', 'Archivo Black', Impact, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; background: #0c0a10; color: var(--text); font-family: system-ui, sans-serif; }
+  canvas#game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  .hidden { display: none !important; }
+  button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; }
+  .screen { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+  /* loading */
+  #screen-loading { background: var(--ink); }
+  #load-wrap { width: min(420px, 80vw); text-align: center; }
+  #load-title { font-family: var(--disp); font-size: clamp(38px, 8vw, 72px); color: var(--accent); letter-spacing: .02em; text-shadow: 4px 4px 0 #7a2d00; }
+  #load-track { height: 14px; background: #2a2136; border-radius: 8px; overflow: hidden; margin: 22px 0 10px; }
+  #load-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--saffron), #ffcf7a); transition: width .3s; }
+  #load-label { color: #9a8fb0; font-size: 13px; }
+
+  /* title */
+  #screen-title { background: radial-gradient(ellipse at 50% 30%, rgba(30,16,6,.25), rgba(8,6,12,.88) 75%); }
+  #title-logo { font-family: var(--disp); font-size: clamp(44px, 11vw, 110px); line-height: .95; color: var(--accent); text-shadow: 0 6px 0 #7a2d00, 0 12px 30px rgba(0,0,0,.6); transform: skew(-4deg); }
+  #title-sub { margin-top: 6px; letter-spacing: .5em; font-weight: 700; color: #d8c9a8; font-size: clamp(11px, 2vw, 16px); }
+  #btn-start { margin-top: 42px; font-family: var(--disp); font-size: clamp(22px, 4vw, 34px); background: var(--accent); color: #241203; padding: 14px 54px; border-radius: 12px; box-shadow: 0 6px 0 #7a2d00, 0 14px 40px rgba(255,150,40,.35); transform: skew(-4deg); transition: transform .1s; }
+  #btn-start:hover { transform: skew(-4deg) scale(1.06); }
+  .title-note { margin-top: 14px; font-size: 12px; color: #8d8299; }
+  #credit { position: fixed; bottom: 14px; width: 100%; text-align: center; font-size: 11px; color: #7d7388; z-index: 11; }
+  #credit a { color: var(--accent); text-decoration: none; }
+  .tri { height: 5px; width: 180px; margin: 18px auto 0; border-radius: 3px; background: linear-gradient(90deg, var(--saffron) 33%, #f4f0e6 33% 66%, var(--green) 66%); }
+
+  /* select */
+  #screen-select { background: radial-gradient(ellipse at 50% 20%, rgba(40,24,8,.35), rgba(10,8,14,.94) 80%); justify-content: flex-start; padding: 18px 14px; overflow-y: auto; }
+  #select-title { font-family: var(--disp); font-size: clamp(22px, 4.6vw, 40px); color: var(--accent); text-shadow: 3px 3px 0 #7a2d00; }
+  #select-hint { font-size: 12px; color: #a79db8; letter-spacing: .3em; margin-top: 4px; }
+  #plates { display: flex; gap: 18px; align-items: center; margin: 12px 0 6px; }
+  .plate { background: var(--panel); border: 1px solid #3a2f4a; border-radius: 10px; padding: 8px 18px; text-align: center; min-width: 150px; }
+  .plate .role { font-size: 10px; color: #a08cc0; letter-spacing: .2em; }
+  .plate .name { font-family: var(--disp); font-size: 16px; color: var(--text); }
+  #vs-plate { font-family: var(--disp); color: var(--red); font-size: 26px; text-shadow: 2px 2px 0 #400; }
+  #fighter-grid { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin: 12px 0 6px; }
+  .fcard { width: 128px; background: var(--panel); border: 2px solid #352b46; border-radius: 12px; padding: 8px; text-align: center; cursor: pointer; transition: transform .12s, border-color .12s; position: relative; }
+  .fcard:hover { transform: translateY(-4px); border-color: var(--accent); }
+  .fcard .fport { width: 106px; height: 106px; margin: 0 auto; border-radius: 8px; background: #1a141f; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 44px; }
+  .fcard .fport img { width: 100%; height: 100%; object-fit: cover; }
+  .fcard .fname { font-family: var(--disp); font-size: 12px; margin-top: 6px; color: var(--text); }
+  .fcard .ftag { font-size: 9.5px; color: #9c8fb4; margin-top: 2px; min-height: 12px; }
+  .fcard .frole { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #241203; font-weight: 900; font-size: 10px; padding: 2px 10px; border-radius: 8px; white-space: nowrap; }
+  .fcard.locked { opacity: .45; cursor: default; }
+  .fcard.random .fport { color: var(--accent); }
+  .fcard.picked-p1 { border-color: var(--saffron); box-shadow: 0 0 18px rgba(255,153,51,.4); }
+  .fcard.picked-p2 { border-color: #6ab0ff; box-shadow: 0 0 18px rgba(106,176,255,.4); }
+  .row-label { font-size: 10px; letter-spacing: .35em; color: #8d8299; margin: 10px 0 6px; }
+  #stage-row, #diff-row { display: flex; gap: 8px; }
+  .scard, .dcard { background: var(--panel); border: 1.5px solid #3a2f4a; padding: 8px 18px; border-radius: 10px; font-family: var(--disp); font-size: 12px; color: #cfc4dd; cursor: pointer; }
+  .scard.picked, .dcard.picked { border-color: var(--accent); color: var(--accent); background: rgba(255,153,51,.1); }
+  #launch-row { display: flex; gap: 14px; margin-top: 16px; }
+  #btn-fight, #btn-2p { font-family: var(--disp); font-size: 20px; padding: 12px 34px; border-radius: 12px; transform: skew(-4deg); }
+  #btn-fight { background: var(--red); color: #fff; box-shadow: 0 5px 0 #6d1512; }
+  #btn-2p { background: #3570b0; color: #fff; box-shadow: 0 5px 0 #1d4570; }
+  #btn-fight:hover, #btn-2p:hover { transform: skew(-4deg) scale(1.05); }
+  #mode-note { margin-top: 8px; font-size: 11px; color: #8d8299; letter-spacing: .2em; }
+  .select-note { font-size: 10.5px; color: #6f657e; max-width: 640px; text-align: center; margin-top: 10px; line-height: 1.5; }
+
+  /* fight HUD */
+  #hud { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+  #hud-top { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; align-items: flex-start; gap: 10px; }
+  .hud-side { flex: 1; }
+  .hud-side.right { text-align: right; }
+  .hp-wrap { background: rgba(10,8,14,.72); border: 1.5px solid #3a2f4a; border-radius: 8px; padding: 6px 8px; position: relative; }
+  .hp-wrap.blocked { animation: blockflash .3s; }
+  @keyframes blockflash { 0% { box-shadow: 0 0 0 3px #6ab0ff; } 100% { box-shadow: none; } }
+  .hp-name { font-family: var(--disp); font-size: 13px; letter-spacing: .06em; margin-bottom: 4px; }
+  .hp-track, .mt-track { background: #241d30; border-radius: 5px; overflow: hidden; }
+  .hp-track { height: 16px; }
+  .mt-track { height: 7px; margin-top: 4px; }
+  .hp-fill { height: 100%; width: 100%; background: linear-gradient(180deg, #ffd24a, #ff9933 60%, #e56b1f); transition: width .12s; float: right; }
+  .hud-side.right .hp-fill { float: none; margin-left: auto; }
+  .mt-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #35c0ff, #6ab0ff); transition: width .15s; }
+  .mt-fill.full { background: linear-gradient(90deg, #ffd24a, #ff9933); animation: mtpulse 0.8s infinite; }
+  @keyframes mtpulse { 50% { filter: brightness(1.5); } }
+  #hud-center { width: 130px; text-align: center; }
+  #hud-round { font-family: var(--disp); font-size: 11px; color: #cbbde0; letter-spacing: .18em; }
+  #hud-timer { font-family: var(--disp); font-size: 40px; color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.6); line-height: 1; }
+  .pips { font-size: 11px; color: var(--accent); letter-spacing: 4px; margin-top: 2px; }
+  #hud-tl { position: absolute; top: 64px; left: 12px; font-size: 12px; color: #d8cfa8; font-family: var(--disp); letter-spacing: .12em; text-shadow: 1px 1px 2px #000; }
+  #hud-btns { position: absolute; top: 10px; right: 12px; display: flex; gap: 8px; z-index: 20; pointer-events: auto; margin-top: 0; }
+  .icon-btn { width: 38px; height: 38px; background: var(--panel); border: 1.5px solid #3a2f4a; border-radius: 9px; font-size: 17px; display: flex; align-items: center; justify-content: center; }
+  .icon-btn:hover { border-color: var(--accent); }
+  #hud-btns-row { position: absolute; top: 58px; right: 12px; display: flex; gap: 6px; pointer-events: auto; flex-wrap: wrap; justify-content: flex-end; max-width: 340px; }
+  .tg { background: var(--panel); border: 1.5px solid #3a2f4a; border-radius: 7px; padding: 4px 10px; font-size: 10.5px; color: #bfaed4; }
+  .tg:hover { border-color: var(--accent); color: var(--accent); }
+
+  #banner { position: absolute; top: 32%; left: 0; right: 0; text-align: center; z-index: 8; }
+  #banner-main { font-family: var(--disp); font-size: clamp(40px, 9vw, 90px); color: var(--accent); text-shadow: 0 6px 0 #7a2d00, 0 14px 40px rgba(0,0,0,.7); transform: skew(-5deg); }
+  #banner-sub { font-family: var(--disp); font-size: clamp(14px, 2.6vw, 24px); color: #fff; letter-spacing: .3em; margin-top: 4px; text-shadow: 0 3px 8px #000; }
+  #banner.pop { animation: bannerpop .35s cubic-bezier(.2, 2.4, .4, 1); }
+  @keyframes bannerpop { 0% { transform: scale(.3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  #combo { position: absolute; top: 22%; left: 6%; font-family: var(--disp); font-size: 30px; color: #ffd24a; text-shadow: 0 3px 0 #7a2d00; z-index: 8; }
+  #combo.pop { animation: bannerpop .2s; }
+  #announcer { position: absolute; bottom: 12%; left: 0; right: 0; text-align: center; font-family: var(--disp); font-size: 15px; color: #ffe2ae; text-shadow: 0 2px 6px #000; z-index: 6; }
+  #hint-bar { position: absolute; bottom: 10px; left: 12px; font-size: 11px; color: #93889f; z-index: 6; text-shadow: 0 1px 3px #000; }
+  #hint-bar b { color: #d8c9a8; }
+
+  /* tool panels */
+  .panel { position: fixed; background: var(--panel2); border: 1.5px solid #3a2f4a; border-radius: 12px; padding: 12px; width: 300px; z-index: 15; backdrop-filter: blur(6px); font-size: 12px; pointer-events: auto; }
+  .panel h3 { font-family: var(--disp); font-size: 13px; color: var(--accent); margin-bottom: 8px; letter-spacing: .04em; }
+  .panel .btnrow { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
+  .panel .btnrow button, .panel .pbtn { background: #241d30; border: 1.5px solid #3a2f4a; border-radius: 7px; padding: 5px 10px; font-size: 11px; color: #cfc4dd; }
+  .panel .btnrow button:hover, .panel .pbtn:hover { border-color: var(--accent); color: var(--accent); }
+  .panel .btnrow button.on { background: rgba(255,153,51,.16); border-color: var(--accent); color: var(--accent); }
+  .panel textarea, .panel pre { width: 100%; background: #120e1a; border: 1px solid #322844; color: #b9e0a0; border-radius: 7px; font-family: var(--mono); font-size: 10px; padding: 6px; margin: 6px 0; resize: vertical; }
+  .panel textarea { height: 54px; }
+  .panel pre { max-height: 90px; overflow: auto; white-space: pre-wrap; }
+  .panel label { display: flex; align-items: center; gap: 8px; margin: 4px 0; color: #a79db8; font-size: 11px; }
+  .panel label input[type=range] { flex: 1; accent-color: var(--accent); }
+  .panel label .v { width: 40px; text-align: right; font-family: var(--mono); color: #ffe2ae; font-size: 10px; }
+  .panel .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+  .panel .grid3 input { width: 100%; background: #120e1a; border: 1px solid #322844; color: #ffe2ae; border-radius: 6px; padding: 4px; font-family: var(--mono); font-size: 11px; }
+  .panel .note { color: #7d7388; font-size: 10px; line-height: 1.5; margin-top: 6px; }
+  #panel-camera { right: 12px; top: 108px; }
+  #panel-view { right: 12px; top: 108px; }
+  #panel-export { right: 12px; top: 108px; }
+  #panel-camera.shown { display: block; }
+  #panel-arena { left: 12px; top: 100px; width: 320px; }
+
+  /* pause / results */
+  #screen-pause, #screen-results { background: rgba(8,6,12,.82); z-index: 30; }
+  .big-menu { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+  .big-menu button { font-family: var(--disp); font-size: 24px; padding: 12px 44px; border-radius: 12px; background: var(--panel2); border: 2px solid #3a2f4a; color: var(--text); transform: skew(-4deg); min-width: 260px; }
+  .big-menu button:hover { border-color: var(--accent); color: var(--accent); transform: skew(-4deg) scale(1.04); }
+  #results-title { font-family: var(--disp); font-size: clamp(34px, 7vw, 64px); color: var(--accent); text-shadow: 0 5px 0 #7a2d00; transform: skew(-4deg); }
+  #results-sub { color: #bfaed4; margin: 8px 0 26px; letter-spacing: .1em; }
+
+  /* help */
+  #help { position: fixed; inset: 0; background: rgba(8,6,12,.9); z-index: 40; display: flex; align-items: center; justify-content: center; }
+  #help-card { background: var(--panel2); border: 2px solid #3a2f4a; border-radius: 16px; padding: 26px 34px; max-width: 620px; width: 92vw; max-height: 86vh; overflow: auto; }
+  #help-card h2 { font-family: var(--disp); color: var(--accent); margin-bottom: 12px; }
+  #help-card table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  #help-card td { padding: 4px 8px; border-bottom: 1px solid #2a2136; color: #cfc4dd; }
+  #help-card td:first-child { font-family: var(--mono); color: #ffe2ae; white-space: nowrap; }
+  #help-card .disclaimer { margin-top: 14px; font-size: 10.5px; color: #7d7388; line-height: 1.6; }
+  kbd { background: #241d30; border: 1px solid #3a2f4a; border-radius: 4px; padding: 1px 6px; font-family: var(--mono); font-size: 11px; }
+
+  @media (max-width: 760px) {
+    .panel { width: min(92vw, 300px); right: 4vw; top: auto; bottom: 8px; max-height: 44vh; overflow: auto; }
+    #panel-arena { left: 4vw; }
+    #fighter-grid .fcard { width: 100px; }
+    .fcard .fport { width: 80px; height: 80px; }
+  }
+</style>
+<script type="importmap">
+  { "imports": { "three": "./vendor/three/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- LOADING -->
+<div id="screen-loading" class="screen">
+  <div id="load-wrap">
+    <div id="load-title">DI TEKAAAA!</div>
+    <div id="load-track"><div id="load-bar"></div></div>
+    <div id="load-label">loading fighters…</div>
+  </div>
+</div>
+
+<!-- TITLE -->
+<div id="screen-title" class="screen hidden">
+  <div id="title-logo">DI TEKAAAA!</div>
+  <div id="title-sub">GOA'S FIGHTING SATIRE</div>
+  <div class="tri"></div>
+  <button id="btn-start">SELECT YOUR FIGHTER</button>
+  <div class="title-note">press <kbd>`</kbd> for arena editor · <kbd>\</kbd> for training mode · <kbd>Esc</kbd> to pause</div>
+</div>
+
+<!-- SELECT -->
+<div id="screen-select" class="screen hidden">
+  <div id="select-title">DI TEKAAAA!</div>
+  <div id="select-hint">SELECT YOUR FIGHTER</div>
+  <div id="plates">
+    <div class="plate"><div class="role" id="plate-p1-role">1P · YOU</div><div class="name" id="plate-p1-name">PRAMOD KAKA</div></div>
+    <div id="vs-plate">VS</div>
+    <div class="plate"><div class="role" id="plate-p2-role">CPU</div><div class="name" id="plate-p2-name">RANYALO POR</div></div>
+  </div>
+  <div id="fighter-grid"></div>
+  <div class="row-label">STAGE</div>
+  <div id="stage-row">
+    <button class="scard picked" data-stage="assembly">ASSEMBLY</button>
+    <button class="scard" data-stage="path">PEOPLES PATH</button>
+    <button class="scard" data-stage="miramar">MIRAMAR</button>
+  </div>
+  <div class="row-label">CPU</div>
+  <div id="diff-row">
+    <button class="dcard" data-diff="easy">EASY</button>
+    <button class="dcard picked" data-diff="normal">NORMAL</button>
+    <button class="dcard" data-diff="hard">HARD</button>
+  </div>
+  <div id="launch-row">
+    <button id="btn-fight">FIGHT!</button>
+    <button id="btn-2p">PLAY A FRIEND</button>
+  </div>
+  <div id="mode-note">1P VS CPU</div>
+  <div class="select-note">Independent reconstruction · parody satire · unaffiliated with the original <i>Di Tekaaaa!</i> by Devan Parab (goamemeproject.com). All characters are original caricatures; all dialogue is parody game audio, not real statements.</div>
+</div>
+
+<!-- FIGHT HUD -->
+<div id="hud" class="hidden">
+  <div id="hud-top">
+    <div class="hud-side">
+      <div class="hp-wrap" id="hp1-wrap">
+        <div class="hp-name" id="hud-n1">PRAMOD KAKA</div>
+        <div class="hp-track"><div class="hp-fill" id="hp1"></div></div>
+        <div class="mt-track"><div class="mt-fill" id="mt1"></div></div>
+        <div class="pips" id="pips1">○○</div>
+      </div>
+    </div>
+    <div id="hud-center">
+      <div id="hud-round">ROUND 1</div>
+      <div id="hud-timer">60</div>
+      <div class="pips" style="visibility:hidden">·</div>
+    </div>
+    <div class="hud-side right">
+      <div class="hp-wrap" id="hp2-wrap">
+        <div class="hp-name" id="hud-n2">RANYALO POR</div>
+        <div class="hp-track"><div class="hp-fill" id="hp2"></div></div>
+        <div class="mt-track"><div class="mt-fill" id="mt2"></div></div>
+        <div class="pips" id="pips2">○○</div>
+      </div>
+    </div>
+  </div>
+  <div id="hud-tl"></div>
+  <div id="hud-btns">
+    <button class="icon-btn" id="btn-help" title="controls">❔</button>
+    <button class="icon-btn" id="btn-pause" title="pause">❚❚</button>
+    <button class="icon-btn" id="btn-sound" title="sound">🔊</button>
+    <button class="icon-btn" id="btn-full" title="fullscreen">⛶</button>
+  </div>
+  <div id="hud-btns-row">
+    <button class="tg" id="tg-camera">Camera Director</button>
+    <button class="tg" id="tg-view">View Director</button>
+    <button class="tg" id="tg-export">Export Config</button>
+  </div>
+  <div id="banner" class="hidden"><div id="banner-main"></div><div id="banner-sub"></div></div>
+  <div id="combo" class="hidden">HIT!</div>
+  <div id="announcer"></div>
+  <div id="hint-bar"><b>`</b> arena editor · <b>\</b> training · <b>Esc</b> pause · hold <b>away</b> to block</div>
+</div>
+
+<!-- CAMERA DIRECTOR -->
+<div id="panel-camera" class="panel hidden">
+  <h3>Camera Director <span id="cd-status" style="color:#8d8299;font-size:10px">GAME · 0 keys</span> <span id="cd-preview-seg" style="color:#ffd24a;font-size:10px"></span></h3>
+  <div class="btnrow">
+    <button id="cd-play">Play (orbit)</button>
+    <button id="cd-preview">Preview shot</button>
+    <button id="cd-freeze">Freeze</button>
+    <button id="cd-step">Step</button>
+    <button id="cd-add">Add key</button>
+  </div>
+  <div class="btnrow">
+    <button id="cd-undo">Undo</button>
+    <button id="cd-clear">Clear</button>
+    <button id="cd-copy">Copy</button>
+    <button id="cd-apply">Apply</button>
+  </div>
+  <div class="note">Play, Freeze, drag the view, Add key, Step, repeat.</div>
+  <textarea id="cd-out" placeholder="copied keyframes appear here"></textarea>
+  <textarea id="cd-in" placeholder="paste keyframes here, then Apply"></textarea>
+</div>
+
+<!-- VIEW DIRECTOR -->
+<div id="panel-view" class="panel hidden">
+  <h3>View Director — default game camera</h3>
+  <label>Height <input type="range" id="vd-height" min="0.5" max="8" step="0.05" value="2.3"><span class="v" id="vd-height-v">2.30</span></label>
+  <label>Distance <input type="range" id="vd-distance" min="2" max="16" step="0.1" value="6.2"><span class="v" id="vd-distance-v">6.20</span></label>
+  <label>Width margin <input type="range" id="vd-widthMargin" min="0" max="8" step="0.1" value="3.2"><span class="v" id="vd-widthMargin-v">3.20</span></label>
+  <label>Look height <input type="range" id="vd-lookHeight" min="0" max="4" step="0.05" value="1.15"><span class="v" id="vd-lookHeight-v">1.15</span></label>
+  <label>Side follow <input type="range" id="vd-sideFollow" min="0" max="2" step="0.05" value="0.55"><span class="v" id="vd-sideFollow-v">0.55</span></label>
+  <label>Lens (FOV) <input type="range" id="vd-fov" min="20" max="90" step="1" value="42"><span class="v" id="vd-fov-v">42</span></label>
+  <div class="btnrow">
+    <button id="vd-reset">Reset</button>
+    <button id="vd-copy">Copy</button>
+    <button id="vd-apply">Apply</button>
+  </div>
+  <div class="note">Move the sliders while fighting. Copy the text and send it to make it the default.</div>
+  <textarea id="vd-out"></textarea>
+  <textarea id="vd-in" placeholder="paste view params JSON here, then Apply"></textarea>
+</div>
+
+<!-- ARENA GLB TRANSFORM -->
+<div id="panel-arena" class="panel hidden">
+  <h3>Arena GLB Transform</h3>
+  <div class="btnrow">
+    <input type="file" id="edUpload" accept=".glb,.gltf" style="display:none"/>
+    <button class="pbtn" onclick="document.getElementById('edUpload').click()">Upload</button>
+    <button class="pbtn" id="edModemove">Move</button>
+    <button class="pbtn" id="edModerotate">Rotate</button>
+    <button class="pbtn" id="edModescale">Scale</button>
+    <button class="pbtn" id="edOrbit">Orbit cam</button>
+    <button class="pbtn" id="edResetCam">Reset Camera</button>
+  </div>
+  <div class="grid3">
+    <label>Scale <input id="edScale" type="number" step="0.05" value=""/></label>
+    <label>Pos X <input id="edPosX" type="number" step="0.1" value=""/></label>
+    <label>Pos Y <input id="edPosY" type="number" step="0.1" value=""/></label>
+    <label>Pos Z <input id="edPosZ" type="number" step="0.1" value=""/></label>
+    <label>Rot X <input id="edRotX" type="number" step="1" value=""/></label>
+    <label>Rot Y <input id="edRotY" type="number" step="1" value=""/></label>
+    <label>Rot Z <input id="edRotZ" type="number" step="1" value=""/></label>
+  </div>
+  <h3 style="margin-top:8px">Initial Player Positions</h3>
+  <div class="grid3">
+    <label>P1 X <input id="edP1X" type="number" step="0.1" value="-2.60"/></label>
+    <label>P1 Y <input id="edP1Y" type="number" step="0.1" value="0.00"/></label>
+    <label>P1 Z <input id="edP1Z" type="number" step="0.1" value="0.00"/></label>
+    <label>AI X <input id="edAIX" type="number" step="0.1" value="2.60"/></label>
+    <label>AI Y <input id="edAIY" type="number" step="0.1" value="0.00"/></label>
+    <label>AI Z <input id="edAIZ" type="number" step="0.1" value="0.00"/></label>
+  </div>
+  <h3 style="margin-top:8px">Export Arena Config</h3>
+  <div class="btnrow">
+    <button class="pbtn" id="edShow">Show</button>
+    <button class="pbtn" id="edCopy">Copy</button>
+    <button class="pbtn" id="edSave">Save Local</button>
+    <button class="pbtn" id="edLoad">Load Local</button>
+    <button class="pbtn" id="edApplyText">Apply Text</button>
+  </div>
+  <textarea id="edConfigIn" placeholder="paste config JSON here, then Apply Text"></textarea>
+  <pre id="edConfigOut">—</pre>
+  <h3 style="margin-top:8px">Background Image</h3>
+  <div class="btnrow">
+    <input id="edBgPath" placeholder="image URL" style="flex:1;background:#120e1a;border:1px solid #322844;color:#ffe2ae;border-radius:6px;padding:4px;font-family:var(--mono);font-size:11px"/>
+    <button class="pbtn" id="edBgLoad">Load</button>
+  </div>
+</div>
+
+<!-- EXPORT CONFIG (quick) -->
+<div id="panel-export" class="panel hidden">
+  <h3>Export Arena Config</h3>
+  <div class="btnrow">
+    <button class="pbtn" id="edShow2">Show</button>
+    <button class="pbtn" id="edCopy2">Copy</button>
+    <button class="pbtn" id="edSave2">Save Local</button>
+    <button class="pbtn" id="edLoad2">Load Local</button>
+    <button class="pbtn" id="edApplyText2">Apply Text</button>
+  </div>
+  <textarea id="edConfigIn2" placeholder="paste config JSON here, then Apply Text"></textarea>
+  <pre id="edConfigOut2">—</pre>
+  <div class="note">Same controls as the Arena panel. Press <kbd>`</kbd> for the full Arena GLB Transform menu.</div>
+</div>
+
+<!-- PAUSE -->
+<div id="screen-pause" class="screen hidden">
+  <div style="font-family:var(--disp);font-size:44px;color:var(--accent);margin-bottom:24px;transform:skew(-4deg)">PAUSED</div>
+  <div class="big-menu">
+    <button id="btn-resume">RESUME</button>
+    <button id="btn-restart">RESTART</button>
+    <button id="btn-quit">QUIT</button>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="screen-results" class="screen hidden">
+  <div id="results-title">— WINS!</div>
+  <div id="results-sub"></div>
+  <div class="big-menu">
+    <button id="btn-replay">REPLAY</button>
+    <button id="btn-change">CHANGE FIGHTER</button>
+  </div>
+</div>
+
+<!-- HELP -->
+<div id="help" class="hidden">
+  <div id="help-card">
+    <h2>DI TEKAAAA! — Controls</h2>
+    <table>
+      <tr><td>A / D</td><td>P1 move (hold away from opponent to block)</td></tr>
+      <tr><td>W / S</td><td>P1 jump / crouch</td></tr>
+      <tr><td>Q or Z</td><td>P1 punch (tap repeatedly for 3-hit chain)</td></tr>
+      <tr><td>E or C</td><td>P1 kick</td></tr>
+      <tr><td>X</td><td>P1 heavy attack (knockdown)</td></tr>
+      <tr><td>R</td><td>P1 special — needs full meter</td></tr>
+      <tr><td>Arrows</td><td>P2 move / jump / crouch (2P mode)</td></tr>
+      <tr><td>, . /</td><td>P2 punch / kick / heavy (2P mode)</td></tr>
+      <tr><td>P / R-Shift</td><td>P2 special (2P mode)</td></tr>
+      <tr><td>`</td><td>show / hide Arena GLB Transform menu</td></tr>
+      <tr><td>\</td><td>training mode: opponent stands still, nobody is KO'd, meters stay full</td></tr>
+      <tr><td>Esc</td><td>pause</td></tr>
+    </table>
+    <div class="disclaimer">
+      <b>Parody notice:</b> This is an independent, fan-made reconstruction of the concept of <i>Di Tekaaaa!</i> (by Devan Parab / Goa Meme Project) for educational purposes. It is not affiliated with or endorsed by the original creator. All characters are original caricature artworks; "Pramod Kaka" is a parody persona, not a depiction of any real person's views. All voice lines are original parody game audio — not recordings of any real person and not genuine quotations. No original game assets are used.
+    </div>
+    <div style="text-align:center;margin-top:14px"><button class="pbtn" id="help-close">CLOSE</button></div>
+  </div>
+</div>
+
+<div id="credit">independent reconstruction <span id="ver-tag">v0</span> · inspired by <a href="https://diteka.goamemeproject.com" target="_blank" rel="noopener">Di Tekaaaa!</a> by <b>Devan Parab</b> · parody, unaffiliated</div>
+
+<script type="module">
+  window.GAME_EDITION='enhanced';
+  import { boot } from './src/enhanced/main.js';
+  boot(document.getElementById('game'));
+</script>
+</body>
+</html>

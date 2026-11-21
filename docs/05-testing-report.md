@@ -70,3 +70,12 @@ Bugs the suite caught and we fixed before shipping: missing `model` arg in punch
 3. Original's exact numeric balance unverifiable — our tuning is documented in `04-combat-spec.md` and intentionally kept close to observable shape.
 4. Original GLB arenas are the author's copyrighted assets — replaced by original procedural builds of the same real-world locations.
 5. Two "SOON" locked slots intentionally stay locked (faithful to original v0.3.1).
+
+## Update — reconciliation segment (post-UI-overhaul)
+
+- **21/21 headless tests stable across 8 consecutive runs** (`tools/headless-test.js`), including the added grab-unblockable check (92→80 through block).
+- **Real AI bug found by test 6 and fixed:** the dash-in/approach branch never pressed an attack once in reach (0 attack decisions over 30 s at fixed range 1.5); AI now presses kick when `dist < kick.range + 0.3`. Hard-isolated 30 s sim confirms: 23 attack decisions, KO reachable, no NaN.
+- DOM cross-check: every `$('id')` referenced by ui.js/editor.js/game.js resolves in index.html (scripted audit).
+- PWA manifest parity with the verified original (fullscreen, landscape, #140a1e).
+- Audio: voice set completed to 20 parody clips (rounds, fight, timeup, victory, training on/off, per-character lose lines); manifest.json ids match playClip names; playClip skips missing clips gracefully.
+- Browser smoke pending (no headless Chromium available in sandbox — npm CDN blocked; documented limitation). Static checks are the verification path for now.

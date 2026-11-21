@@ -221,8 +221,9 @@ Applied to the repository in the commits following this report:
 4. **Dev-tools gating**: panels hidden by default (body.prod), `?dev=1`/localhost shows, backtick toggles (`arena-open`), training-mode bottom banner ("TRAINING MODE · \ to exit"), panels positioned like the original (camDirector top-right, viewDirector bottom-right, arenaControls left).
 5. **Background image**: file input added alongside path field.
 6. **HUD details**: hitShake, bar.hurt flash, low-clock pulse, pause menu with green/coral/blue buttons + top-center ❚❚, audio control right-center with volume slider, fullscreen button.
-7. **Touch controls**: virtual stick + PUNCH/KICK/GRAB/SUPER buttons (pointer-events handled; GRAB implemented as a close-range throw, labelled *inferred* — no keyboard binding exists in the original help).
-8. **FBX note**: upload accept extended to `.glb,.gltf` (FBX requires a parser we do not vendor; documented).
+7. **Touch controls**: virtual stick + buttons — order and labels now VERIFIED (GRAB / DI TEKA / PUNCH / KICK; GRAB binds to the heavy key, docs/06 §5.11).
+8. **FBX note**: upload accept extended to `.glb,.gltf` (FBX requires a parser we do not vendor; documented). The original rigs are FBX (`character.fbx` per character, shared Mixamo animation pack `anims.pack.json` — docs/06 §5.2).
+9. **Verified-spec pass (post-bundle-analysis)**: exact attack/physics/meter tables, AI behavior, round flow, health thresholds, banner texts, touch order — see the commit history and docs/04; grab is verified blockable at ceil(20%) chip (was previously shipped as an unblockable throw — corrected).
 
 ## 8. Previously-inferred items — RESOLVED by bundle analysis
 

@@ -48,3 +48,17 @@ npm run start                 # static server
 Structure: `src/` engine modules (config, audio, characters, animator, arenas, camera, combat, ai, editor, ui, game) · `src/enhanced/` enhanced-edition deltas · `vendor/three/` Three.js r160 (MIT) · `docs/` research & reports · `assets/audio/` generated voice clips + `manifest.json`.
 
 Project documentation: `docs/ROADMAP.md` → `01-original-game-investigation` → `02-character-research` → `03-resource-inventory` → `04-combat-spec` → `05-testing-report`.
+
+## Fidelity status (evidence-based)
+
+- Full original stylesheet + HTML recovered and matched (docs/06 §3–4).
+- Original JS bundle (index-B2urjfnw.js, v0.3.1) captured via Wayback SPN and fully
+  analysed — docs/06 §5 carries the verified combat tables, AI model, round flow,
+  camera formulas, audio architecture, storage keys, stage configs and UI strings.
+- Verified values are applied to `src/config.js`, `src/ai.js`, `src/combat.js`,
+  `src/game.js`, `src/ui.js` and both HTML files (commit history lists each).
+- Known presentation gaps (documented, not hidden): comic damage-word sprites,
+  levitate+beam / ambulance special cinematics (our cast approximates them),
+  getup reverse-playback, procedural crowd/placard meshes, Miramar clean-cinematic.
+- Online lobby: verified never live in the original ("relay has to be deployed
+  first") — not reconstructed; PLAY A FRIEND is local 2P in our build.

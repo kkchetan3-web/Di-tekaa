@@ -8,6 +8,11 @@ import { STAGE_MIN_X, STAGE_MAX_X, ROSTER } from './config.js';
 
 const GRAVITY = 22;
 
+// verified block precondition: the opponent must be in an attack state
+function oppAttacking(attacker) {
+  return attacker && attacker.state === 'attack';
+}
+
 // ---------------------------------------------------------------------------
 // Effects — hit sparks, dust puffs (original procedural visuals)
 // ---------------------------------------------------------------------------
@@ -82,6 +87,9 @@ export class Fighter {
     this.state = 'idle';
     this.stunT = 0; this.downT = 0; this.attackT = 0; this.attackMove = null; this.attackHasHit = false;
     this.comboNext = null; this.comboWindow = 0; this.chainCount = 0;
+    this.chainHits = 0; this.chainTimer = 0;   // verified: consecutive-hit damage scaling (1.4 s window)
+    this.kickChainT = 0;                        // verified: kick-chain combo knockdown gate
+    this.specialUsed = false;                   // verified: meter gain stops after the special
     this.blockHoldT = 0; this.airFrom = null;
     this.model.lieFlat(false);
     this.model.setMood('neutral');
@@ -107,12 +115,14 @@ export class Fighter {
     audio.whoosh();
     if (name === 'special') {
       this.meter = 0;
+      this.specialUsed = true;   // verified: meter gains stop after the special
       audio.special();
       const clip = this.charId === 'kaka' ? 'specialKaka' : 'specialPor';
       this.animator.play(clip);
       this.game.effects.ring(new THREE.Vector3(this.x, 1, this.z), this.charId === 'kaka' ? 0xff7733 : 0xdd3344);
     } else if (name === 'grab') {
-      // close-range throw (mobile GRAB button; behaviour inferred — docs/06 §7)
+      // verified: the mobile GRAB button binds to the heavy attack (docs/06 §5.2/5.3);
+      // blockable like any attack at ceil(20%) chip
       this.animator.play('punch2');
     } else {
       this.animator.play(name === 'punch' && this.chainCount % 2 === 1 ? 'punch2' : name);
@@ -136,6 +146,9 @@ export class Fighter {
     this.input = input;
     this.opponent = opp;
     this.comboWindow = Math.max(0, this.comboWindow - dt);
+    this.chainTimer = Math.max(0, this.chainTimer - dt);
+    if (this.chainTimer <= 0) this.chainHits = 0;      // verified chain window 1.4 s
+    this.kickChainT = Math.max(0, this.kickChainT - dt);
 
     // knockdown / KO airborne arc
     if (!this.grounded) {
@@ -176,7 +189,9 @@ export class Fighter {
         this.attackT += dt;
         const mv = this.attackMove;
         const t = this.attackT;
-        const activeStart = mv.startup, activeEnd = mv.startup + mv.active, total = mv.startup + mv.active + mv.recovery;
+        const activeStart = mv.startup, activeEnd = mv.startup + mv.active;
+        // verified: whiff adds extra recovery (Qg table)
+        const total = activeEnd + mv.recovery + (!this.attackHasHit && t > activeEnd ? (mv.whiff || 0) : 0);
         // special motions move the fighter
         if (mv.motion === 'charge' && t > mv.startup * 0.5 && t < activeEnd) {
           const dir = Math.sign(opp.x - this.x) || 1;
@@ -223,11 +238,13 @@ export class Fighter {
         }
         this.blockHoldT = Math.max(0, this.blockHoldT - dt);
 
-        // attack initiations
+        // attack initiations (verified: crouch variants S+punch uppercut / S+kick sweep / S+X groin;
+        // punch chain cycles punch→cross→hook)
         if (this.grounded && input) {
-          if (input.punchP) this.queueAttack('punch');
-          else if (input.kickP) this.queueAttack('kick');
-          else if (input.heavyP) this.queueAttack('heavy');
+          const crouched = this.state === 'crouch' || (input.down && this.grounded);
+          if (input.punchP) this.queueAttack(crouched && this.def.moves.uppercut ? 'uppercut' : this.nextChainPunch());
+          else if (input.kickP) this.queueAttack(crouched && this.def.moves.sweep ? 'sweep' : 'kick');
+          else if (input.heavyP) this.queueAttack(crouched && this.def.moves.groin ? 'groin' : 'heavy');
           else if (input.grabP) this.queueAttack('grab');
           else if (input.specialP && this.meter >= 100) this.queueAttack('special');
           else if (input.tauntP && this.game && this.game.allowTaunts) this.doTaunt();
@@ -236,9 +253,9 @@ export class Fighter {
       }
     }
 
-    // combo chaining: pressing punch during recovery queues next jab
-    if (this.state === 'attack' && this.attackMove && this.attackMove.name === 'punch' && input && input.punchP && this.attackT > this.attackMove.startup + this.attackMove.active) {
-      this.comboNext = 'punch'; this.comboWindow = 0.3;
+    // verified punch chain window (0.85 s): pressing punch again queues the next chain kind
+    if (this.state === 'attack' && this.attackMove && ['punch', 'cross', 'hook'].includes(this.attackMove.name) && input && input.punchP && this.attackT > this.attackMove.startup + this.attackMove.active) {
+      this.comboNext = this.nextChainKind(); this.comboWindow = 0.85;
     }
     if (this.state === 'idle' && this.comboNext && this.comboWindow > 0 && this.chainCount < 3) {
       this.chainCount++;
@@ -264,6 +281,17 @@ export class Fighter {
   blockingOppApproach(opp) {
     // show block pose while opponent is attacking or just finished
     return opp && (opp.state === 'attack' || opp.blockHoldT > 0 || opp.state === 'down');
+  }
+
+  // verified: punch chain cycles punch → cross → hook (0.85 s window, resets after hook)
+  nextChainKind() {
+    const seq = ['punch', 'cross', 'hook'];
+    const i = seq.indexOf(this.attackMove?.name || 'punch');
+    return seq[(i + 1) % 3];
+  }
+  nextChainPunch() {
+    // first press of a fresh chain: cycle position from chainCount
+    return this.chainCount === 0 ? 'punch' : (this.chainCount === 1 ? 'cross' : 'hook');
   }
 
   queueAttack(name) {
@@ -304,29 +332,43 @@ export class Fighter {
     const reach = mv.range + 0.35;
     if (dist > reach) return;
     if (opp.y > 1.15) return;                    // jumped over it
-    if (opp.crouching && mv.height === 'high') return;  // ducked it
+    if (opp.crouching && mv.height === 'high') return;  // ducked it (verified dodge rule)
+    if (mv.height === 'low' && !opp.grounded) return;   // verified: airborne dodges lows
     this.attackHasHit = true;
     opp.receiveHit(mv, this, this.game);
   }
 
   receiveHit(mv, attacker, game) {
     const dir = Math.sign(this.x - attacker.x) || attacker.side;
-    if (!mv.unblockable && (this.blocking || (this.grounded && this.holdingBack && !this.busy))) {
-      // BLOCKED
-      const chip = (mv.name === 'heavy' || mv.name === 'special') ? Math.max(1, Math.round(mv.dmg * 0.1)) : 0;
+    if (this.blocking || (this.grounded && this.holdingBack && !this.busy && oppAttacking(attacker))) {
+      // BLOCKED — verified: chip = ceil(20%) on every attack (min 1), stun .12, pushback
+      const chip = Math.max(1, Math.ceil(mv.dmg * 0.2));
       this.health = Math.max(0, this.health - chip);
-      this.stunT = mv.name === 'special' ? 0.3 : 0.2;
+      this.stunT = 0.12;
       this.state = this.state === 'crouch' ? 'crouch' : 'block';
       this.velX = dir * 2.4; this.x += this.velX * 0.06;
       attacker.velX = -dir * 1.2;
-      game.hitStop = 0.05;
+      game.hitStop = 0.025;                       // verified block hitStop
       game.effects.burst(new THREE.Vector3((this.x + attacker.x) / 2, 1.15 + (this.y || 0), 0), 0x6ab0ff, 8, 3);
       audio.block();
-      this.meter = Math.min(100, this.meter + 8);
+      this.meter = Math.min(100, this.meter + 1.8);      // verified victim blocked gain
+      attacker.meter = Math.min(100, attacker.meter + 3.6); // verified attacker blocked gain
       return;
     }
     // CLEAN HIT
-    const dmg = mv.dmg;
+    // verified armor: victim mid-attack (kick/heavy/grab/groin, still in startup/active)
+    // against light damage (<= 6) shrugs it off (hitStop .02, no reaction)
+    if (this.state === 'attack' && mv.dmg <= 6 && !mv.motion &&
+        ['kick', 'heavy', 'grab', 'groin'].includes(this.attackMove?.name) &&
+        this.attackT < this.attackMove.startup + this.attackMove.active) {
+      game.hitStop = 0.02;
+      return;
+    }
+    // verified chain scaling: dmg × max(.6, 1 − .1·chainHits), window 1.4 s
+    const scale = Math.max(0.6, 1 - 0.1 * (attacker.chainHits || 0));
+    const dmg = Math.max(1, Math.round(mv.dmg * scale));
+    attacker.chainHits = (attacker.chainHits || 0) + 1;
+    attacker.chainTimer = 1.4;
     this.health = Math.max(0, this.health - dmg);
     if (attacker.game && attacker.game.stats) {
       const idx = attacker.side === 1 ? 0 : 1;
@@ -335,18 +377,40 @@ export class Fighter {
     }
     this.model.setMood('hurt');
     game.ui.flashBar(this.side); // verified bar.hurt flash
-    attacker.meter = Math.min(100, attacker.meter + mv.meter);
-    this.meter = Math.min(100, this.meter + mv.meterTake);
+    if (!this.specialUsed) this.meter = Math.min(100, this.meter + 4.8);   // verified victim gain
+    if (!attacker.specialUsed) attacker.meter = Math.min(100, attacker.meter + 7.2); // verified attacker gain
     if (attacker.meter >= 100 && attacker.meterPrev < 100) audio.meterFull();
     attacker.meterPrev = attacker.meter;
 
     const kb = mv.kb || 0.8 + dmg * 0.05;
     this.velX = dir * kb;
-    const heavy = mv.name === 'heavy' || mv.name === 'special';
-    if (heavy) { this.velY = 4.2; this.state = 'down'; this.downT = 1.1; this.y = Math.max(this.y, 0.01); }
-    else { this.state = 'hit'; this.stunT = 0.24 + dmg * 0.012; }
+    const heavy = mv.knockdown === 'hard' || mv.name === 'special';
+    const soft = mv.knockdown === 'soft';
+    if (heavy) {
+      // verified: launch arc + throwX knockback (uppercut 5.5; specials carry their own)
+      this.velY = mv.launch || 4.2;
+      this.velX = dir * (mv.throwX || 3.2);
+      this.state = 'down'; this.downT = 1.15; this.y = Math.max(this.y, 0.01);
+    } else if (soft) {
+      this.velY = 2.2;
+      this.velX = dir * (mv.throwX || 3.2);
+      this.state = 'down'; this.downT = 1.4; this.y = Math.max(this.y, 0.01);
+    } else {
+      this.state = 'hit'; this.stunT = 0.32;      // verified generic stun
+    }
 
-    game.hitStop = heavy ? 0.11 : 0.06;
+    // verified kick-chain combo: a kick hit while kickChainT is active converts to a
+    // combo knockdown (throwX 5.5); each kick hit re-arms the 2 s chain gate
+    if (mv.name === 'kick' && this.health > 0) {
+      if (attacker.kickChainT > 0) {
+        this.velY = Math.max(this.velY, 3.4);
+        this.velX = dir * 5.5;
+        this.state = 'down'; this.downT = 1.3; this.y = Math.max(this.y, 0.01);
+        attacker.kickChainT = 0;
+      } else attacker.kickChainT = 2;
+    }
+
+    game.hitStop = heavy ? 0.09 : 0.035;          // verified hitStop values
     game.fightCam.shake = heavy ? 1.2 : 0.5;
     const hitPos = new THREE.Vector3((this.x + attacker.x) / 2 + dir * 0.2, 1.2 + (this.y || 0), 0);
     game.effects.burst(hitPos, heavy ? 0xff5533 : 0xffd24a, heavy ? 16 : 10, heavy ? 6 : 4);

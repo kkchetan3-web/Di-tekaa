@@ -194,7 +194,7 @@ export class Game {
     p2.animator.play(p2.charId === 'kaka' ? 'introKaka' : 'introPor');
     audio.playClip(p1.charId + '_intro');
     audio.playClip(p2.charId + '_intro');
-    this.ui.banner(this.mode === '2p' ? 'P1 VS P2' : `${p1.def.name} VS ${p2.def.name}`, true, 2.2);
+    this.ui.banner(`${p1.def.name} VS ${p2.def.name}`, true, 2.2); // verified intro banner: `${label} — DI TEKAAAA!` carry-over
   }
 
   beginRound() {
@@ -208,7 +208,9 @@ export class Game {
     this.timer = ROUND_TIME;
     this.roundPhase = 'banner';
     this.phaseT = 0;
-    this.ui.setRoundLabel(this.round);
+    // verified: FINAL ROUND when round >= 3 or both fighters have one win
+    const finalRound = this.round >= 3 || (p1.roundsWon === 1 && p2.roundsWon === 1);
+    this.ui.setRoundLabel(finalRound ? 'FINAL ROUND' : this.round);
     this.ui.setHealth(1, 100); this.ui.setHealth(2, 100);
     this.ui.setTimer(this.timer);
     audio.playClip('round' + this.round);
@@ -218,7 +220,10 @@ export class Game {
     if (this.roundPhase !== 'fight') return;
     this.roundPhase = 'ko';
     this.phaseT = 0;
-    this.timeScale = 0.35;
+    // verified: KO slow-mo .3× recovering over 1.4 s (2.4 s at match point)
+    const matchPoint = loser.roundsWon + 1 >= this.roundsToWin || loser.opponent.roundsWon + 1 >= this.roundsToWin;
+    this._koDur = matchPoint ? 2.4 : 1.4;
+    this.timeScale = 0.3;
     this.hitStop = 0.12;
     this.ui.banner('K.O.!', true, 2);
     audio.playClip('ko');
@@ -237,9 +242,10 @@ export class Game {
     this.phaseT = 0;
     const [p1, p2] = this.fighters;
     const h1 = p1.health / p1.maxHealth, h2 = p2.health / p2.maxHealth;
-    const winner = h1 === h2 ? null : (h1 > h2 ? p1 : p2);
+    const winner = h1 === h2 ? null : (h1 > h2 ? p1 : p2);   // verified: higher health wins, tie = draw
     if (winner) winner.roundsWon++;
-    this.ui.banner('TIME UP', false, 2);
+    this._timeDraw = !winner;
+    this.ui.banner(winner ? `TIME! ${winner.def.name} TAKES ROUND ${this.round}` : 'TIME UP — DRAW', false, 2);
     audio.playClip('timeup');
   }
 
@@ -254,8 +260,14 @@ export class Game {
     if (p1.roundsWon >= this.roundsToWin || p2.roundsWon >= this.roundsToWin) {
       this.matchEnd(p1.roundsWon > p2.roundsWon ? p1 : p2);
     } else {
+      // verified banner texts: round win / draw, then next round after 3.2 s
+      const w = p1.roundsWon > this._prevRounds1 ? p1 : (p2.roundsWon > this._prevRounds2 ? p2 : null);
+      this._prevRounds1 = p1.roundsWon; this._prevRounds2 = p2.roundsWon;
+      this.ui.banner(this._timeDraw ? 'DRAW — DO IT AGAIN' : `${w.def.name} TAKES ROUND ${this.round}`, false, 2.4);
+      this._timeDraw = false;
       this.round++;
-      this.beginRound();
+      this._nextRoundT = 3.2;
+      this.roundPhase = 'matchend';
     }
   }
 
@@ -269,10 +281,11 @@ export class Game {
     winner.shout('win');
     loser.shout('lose');
     audio.playClip('victory');
-    this.ui.banner(winner.def.name + ' WINS!', true, 2.6);
+    this.ui.banner(`${winner.def.name} WINS`, true, 2.6); // verified match banner
     setTimeout(() => {
       if (this.state !== 'fight') return;
-      $('replayBtn').style.display = 'block';
+      $('replayBtn').textContent = 'Play again'; // verified label
+    $('replayBtn').style.display = 'block';
       this.state = 'results';
       const st = this.stats;
       const statsLine = this.edition === 'enhanced' ? ` · hits ${st.hits[0]}–${st.hits[1]} · dmg ${Math.round(st.dmg[0])}–${Math.round(st.dmg[1])}` : '';
@@ -355,7 +368,8 @@ export class Game {
       if (this.hitStop > 0) { this.hitStop -= dtReal; }
       else {
         const dt = dtReal * this.timeScale;
-        if (this.timeScale < 1) this.timeScale = Math.min(1, this.timeScale + dtReal * 0.8);
+        // verified: slow-mo recovers to 1× over the KO window (1.4 s / 2.4 s match point)
+        if (this.timeScale < 1) this.timeScale = Math.min(1, this.timeScale + dtReal * (this._koDur ? 0.7 / this._koDur : 0.8));
 
         const [p1, p2] = this.fighters;
         const prev1 = this._prev1 = this._prev1 || {};
@@ -363,7 +377,7 @@ export class Game {
 
         if (this.roundPhase === 'intro') {
           this.phaseT += dt;
-          if (this.phaseT > 2.0) this.beginRound();
+          if (this.phaseT > 1.9) this.beginRound();   // verified intro 1.9 s
         } else if (this.roundPhase === 'banner') {
           this.phaseT += dt;
           if (this.phaseT > 0.9 && !this._fightShown) {
@@ -379,7 +393,13 @@ export class Game {
           const in2 = this.mode === '2p' ? this.readInput(KEYMAP_P2, prev2) : this.ai.update(dt, p1, this);
           p1.update(dt, in1, p2);
           p2.update(dt, in2, p1);
-          if (this.training) { p1.meter = 100; p2.meter = 100; p1.health = Math.max(p1.health, 1); p2.health = Math.max(p2.health, 1); }
+          if (this.training) {
+            // verified: auto-heal (2 s after damage starts, or instantly below 25); meter stays full
+            const hurt = p1.health < 100 || p2.health < 100;
+            this._trainT = hurt ? (this._trainT || 0) + dt : 0;
+            if (this._trainT > 2 || p1.health < 25 || p2.health < 25) { p1.health = 100; p2.health = 100; this._trainT = 0; }
+            p1.meter = 100; p2.meter = 100;
+          }
           this.timer -= dt;
           if (this.timer <= 0 && !this.training) this.timeUp();
           else if (this.timer <= 0) this.timer = ROUND_TIME;
@@ -397,6 +417,10 @@ export class Game {
         } else if (this.roundPhase === 'matchend') {
           p1.update(dt, null, p2);
           p2.update(dt, null, p1);
+          if (this._nextRoundT != null) {           // verified: next round after 3.2 s
+            this._nextRoundT -= dtReal;
+            if (this._nextRoundT <= 0) { this._nextRoundT = null; this.beginRound(); }
+          }
         }
         this.effects.update(dt);
         this.arena.update(dt, this.clock.elapsedTime);

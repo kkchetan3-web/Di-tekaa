@@ -12,13 +12,21 @@ P2 (PLAY A FRIEND — reconstructed): `←/→` move · `↑` jump · `↓` crou
 
 ## Frame data (unit: seconds; distance in world metres)
 
-| Move | Startup | Active | Recovery | Damage | Range | Meter gain (hit/give) | Notes |
-|------|---------|--------|----------|--------|-------|------------------------|-------|
-| Punch | 0.10 | 0.08 | 0.14 | 6 | 1.55 | +8 / +12 | jab, chains ×3 on timed repeat |
-| Kick | 0.14 | 0.10 | 0.20 | 10 | 1.95 | +10 / +14 | longer reach, slower |
-| Heavy | 0.26 | 0.12 | 0.34 | 18 | 2.10 | +14 / +18 | knockback, −35% dmg when blocked |
-| Special | 0.22 | 0.45 | 0.40 | 28 | 2.4 | costs FULL meter | character-specific motion, knockdown |
-| Grab | 0.16 | 0.10 | 0.30 | 12 | 1.35 | +12 / +16 | **unblockable** throw; verified mobile GRAB button exists in original (docs/06 §4.4); behaviour inferred; keyboard-unassigned in faithful edition |
+| Move | Startup | Active | Recovery | Damage | Range | Meter (attacker/victim) | Notes |
+|------|---------|--------|----------|--------|-------|--------------------------|-------|
+| Punch | 0.035 | 0.10 | 0.075 | 4 | 1.40 | +7.2 / +4.8 | chain → Cross → Hook (0.85 s window) |
+| Cross | 0.10 | 0.14 | 0.10 | 5 | 1.45 | +7.2 / +4.8 | chain step 2 |
+| Hook | 0.15 | 0.225 | 0.16 | 6 | 1.45 | +7.2 / +4.8 | chain step 3 |
+| Kick | 0.12 | 0.26 | 0.26 | 7 | 1.65 | +7.2 / +4.8 | high; knockdown hard; kick-chain 2 s → combo knockdown (throwX 5.5) |
+| Heavy = GRAB | 0.14 | 0.18 | 0.40 | 10 | 1.50 | +7.2 / +4.8 | verified: the mobile GRAB button binds to this key; knockdown hard; blockable (20% chip) |
+| Sweep (S+kick) | 0.30 | 0.18 | 0.35 | 7 | 1.70 | +7.2 / +4.8 | low; knockdown soft |
+| Groin (S+heavy) | 0.12 | 0.26 | 0.30 | 6 | 1.45 | +7.2 / +4.8 | low; knockdown soft |
+| Uppercut (S+punch) | 0.20 | 0.12 | 0.40 | 8 | 1.40 | +7.2 / +4.8 | launch 5.5, knockdown hard |
+| Special | 0.22 | 0.28 | 0.50 | 20 | 1.90 | costs FULL meter | verified titles/damage/timings (docs/06 §5.3); our cast presentation approximates the verified levitate+beam / ambulance cinematics |
+
+**Verified combat rules now implemented** (docs/06 §5.3): meter attacker +3.6 / victim +1.8 on block; chip = ceil(20%) on every attack; chain damage scaling ×max(.6, 1 − .1·hits) over a 1.4 s window; armor (mid-attack kick/heavy/grab/groin vs dmg ≤ 6 → no reaction); dodge (crouch vs high, airborne vs low); block window = holding away + opponent attacking + dist < 2.6; hitStop .035/.025 (clean/blocked), .09 heavy; whiff extra recovery {punch .06, kick .12, heavy .16, sweep .14, uppercut .16}; stun .32 clean / .12 blocked / .55 heavy; knockdown throwX default 3.2 (heavy reaction 4.5-block push 5); meter gain stops after the special.
+**Known presentation gaps (documented, not hidden):** comic damage words (GHE!/DHISHUM!/ZAPAAK! etc.) are canvas sprites in the original — ours shows numeric-free hit feedback only; getup reverse-playback not reproduced (our knockdown uses a timed down state).
+
 
 - **Block**: hold away from opponent; blocks high+mid; blocked hit ⇒ 0 dmg (chip 1 on heavy/special), blockstun 0.18–0.30s, pushback.
 - **Hitstun** 0.28–0.45s scaled by damage; **knockback** 0.8–2.4 m heavy/special; **hit-stop** freeze 60–110 ms for impact feel.

@@ -159,8 +159,8 @@ export class UI {
   setHealth(side, pct) {
     const el = $(side === 1 ? 'p1Health' : 'p2Health');
     el.style.width = Math.max(0, pct) + '%';
-    el.classList.toggle('mid', pct <= 50 && pct > 25);
-    el.classList.toggle('low', pct <= 25); // thresholds inferred (docs/06 §7)
+    el.classList.toggle('mid', pct < 60 && pct >= 30);   // verified thresholds 30–60
+    el.classList.toggle('low', pct < 30);                 // verified <30 (docs/06 §5.5)
   }
 
   flashBar(side) {
@@ -308,7 +308,7 @@ export class UI {
       if (e.code === 'Backslash') { g.toggleTraining(); e.preventDefault(); }
       if (e.code === 'Escape') { if (g.state === 'fight') g.pause(); else if (g.state === 'paused') g.resume(); }
     });
-    // touch controls (verified layout; GRAB behaviour inferred — docs/06 §7)
+    // touch controls (verified: order GRAB/DI TEKA/PUNCH/KICK; GRAB = heavy key — docs/06 §5.11)
     this.bindTouch(g);
     // unlock audio on first gesture
     const unlock = () => g.audio.ensure();

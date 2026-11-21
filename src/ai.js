@@ -1,4 +1,11 @@
-// ai.js — CPU opponent controller (reactive state machine, per-character configs)
+// ai.js — CPU opponent controller
+//
+// FIDELITY: behaviour model verified from the original bundle (docs/06 §5.4):
+// walk when dist > walkDist, ATTACK when dist < attackDist, cadence
+// interval[0] + rnd·(interval[1]-interval[0]), weights punch/kick/heavy,
+// reactive block (blockReact/frame when opponent attacks within blockRange,
+// holds away for blockHold s), special once meter is full after specialHold.
+// The original never jumps or crouches; EASY/HARD are our extrapolations.
 
 import { DIFFICULTY } from './config.js';
 
@@ -6,16 +13,21 @@ export class AIController {
   constructor(fighter, difficulty = 'normal') {
     this.f = fighter;
     this.setDifficulty(difficulty);
-    this.timer = 0;
-    this.input = { left: false, right: false, up: false, down: false, punchP: false, kickP: false, heavyP: false, specialP: false, tauntP: false };
-    this.plan = null;      // {type:'approach'|'retreat'|'attack'|'block'|'jump'|'idle', t}
+    this.timer = 0;            // counts up (original semantics)
+    this.nextAttackAt = 0.6;   // first attack gate
     this.blockT = 0;
+    this.fullSince = null;     // when meter became full
+    this.fullDelay = 0;
+    this.input = { left: false, right: false, up: false, down: false, punchP: false, kickP: false, heavyP: false, specialP: false, tauntP: false };
+    this.decisions = 0;        // instrumentation for headless tests
   }
 
   setDifficulty(d) {
     this.d = DIFFICULTY[d] || DIFFICULTY.normal;
     this.name = d;
     this.timer = 0;
+    this.nextAttackAt = 0.6;
+    this.fullSince = null;
   }
 
   _press(k) { this.input[k + 'P'] = true; }
@@ -28,13 +40,16 @@ export class AIController {
     if (!opp || f.state === 'ko' || f.state === 'win' || f.state === 'lose' || f.state === 'intro') return inp;
     if (f.dummy) return inp;
 
-    const dist = Math.abs(opp.x - f.x);
-    const cfg = f.def.ai;
+    this.timer += dt;
     const D = this.d;
+    const dist = Math.abs(opp.x - f.x);
 
-    // reactive blocking: opponent attacking nearby
-    if (opp.state === 'attack' && dist < 2.6 && Math.random() < D.reaction * dt * 12) {
-      this.blockT = 0.35 + Math.random() * 0.3;
+    // training mode: original clears AI input every frame (AI stands still)
+    if (game && game.training) return inp;
+
+    // reactive blocking: opponent attacking nearby -> hold away briefly
+    if (opp.state === 'attack' && dist < D.blockRange && Math.random() < D.blockReact) {
+      this.blockT = D.blockHold;
     }
     this.blockT = Math.max(0, this.blockT - dt);
     if (this.blockT > 0 && f.grounded && !f.busy) {
@@ -42,79 +57,38 @@ export class AIController {
       return inp;
     }
 
-    // anti-air
-    if (!f.grounded) return inp;
-    if (opp.y > 0.4 && dist < 2.2 && Math.random() < D.antiAir * dt * 10) {
-      this._press(Math.random() < 0.5 ? 'punch' : 'kick');
-      return inp;
-    }
+    if (f.grounded === false) return inp;
 
-    this.timer -= dt;
-    if (this.timer > 0) {
-      // continue current plan
-      if (this.plan) {
-        switch (this.plan.type) {
-          case 'approach': if (opp.x > f.x) inp.right = true; else inp.left = true; break;
-          case 'retreat': if (opp.x > f.x) inp.left = true; else inp.right = true; break;
-          case 'crouch': inp.down = true; break;
-          case 'jump': inp.up = this.plan.fresh ? true : false; this.plan.fresh = false; break;
-        }
-      }
-      return inp;
-    }
-
-    // new decision
-    const [lo, hi] = D.interval;
-    this.timer = lo + Math.random() * (hi - lo);
-    const r = Math.random();
-    const aggr = D.aggression * (cfg.aggression ? cfg.aggression / 0.55 : 1);
-
-    // special logic
-    if (f.meter >= 100 && dist < cfg.specialAt + 0.8 && r < D.specialUse) {
-      this._press('special');
-      return inp;
-    }
-
-    // spacing personality
-    const wantDist = cfg.spacing === 'close' ? 1.2 : cfg.spacing === 'mid' ? 1.9 : 2.4;
-
-    if (dist > wantDist + 1.6) {
-      // approach (or bait with taunt on easy when far)
-      if (Math.random() < 0.06 && game.allowTaunts) { inp.tauntP = true; return inp; }
-      this.plan = { type: 'approach' };
+    // walk toward when out of walk range
+    if (dist > D.walkDist) {
       if (opp.x > f.x) inp.right = true; else inp.left = true;
-      return inp;
     }
-    if (dist > wantDist + 0.2) {
-      const kickRange = this.f.def.moves.kick.range + 0.3;
-      if (r < aggr) { // dash in with attack (kick if it already reaches)
-        if (dist < kickRange) this._press('kick');
-        this.plan = { type: 'approach' };
-        if (opp.x > f.x) inp.right = true; else inp.left = true;
-        this.timer *= 0.5;
-      } else if (r < aggr + 0.2 && Math.random() < 0.4) {
-        this.plan = { type: 'jump', fresh: true }; inp.up = true;
-      } else {
-        this.plan = { type: 'approach' };
-        if (opp.x > f.x) inp.right = true; else inp.left = true;
+
+    // attack gate
+    if (dist < D.attackDist && this.timer >= this.nextAttackAt) {
+      const meterFull = f.meter >= 100 && !f.specialUsed;
+      if (meterFull) {
+        if (this.fullSince == null) {
+          this.fullSince = this.timer;
+          this.fullDelay = D.specialHold[0] + Math.random() * (D.specialHold[1] - D.specialHold[0]);
+        }
+        if (this.timer - this.fullSince >= this.fullDelay) {
+          this._press('special');
+          this.nextAttackAt = this.timer + D.interval[0] + Math.random() * (D.interval[1] - D.interval[0]);
+          this.decisions++;
+          return inp;
+        }
+        // hold back while charging the special decision (original walks meanwhile)
+        return inp;
       }
-      return inp;
-    }
-    // in range
-    if (r < aggr) {
-      const roll = Math.random();
-      if (dist > wantDist + 0.6 && roll < 0.5) this._press('kick');
-      else if (roll < 0.6) this._press('punch');
-      else if (roll < 0.8) this._press('heavy');
-      else this._press('kick');
-    } else if (r < aggr + D.blockBias) {
-      this.blockT = 0.4 + Math.random() * 0.4;
-    } else if (r < aggr + D.blockBias + 0.15) {
-      this.plan = { type: 'retreat' };
-      if (opp.x > f.x) inp.left = true; else inp.right = true;
-    } else {
-      inp.down = true;
-      this.plan = { type: 'crouch' };
+      this.fullSince = null;
+      const r = Math.random();
+      const w = D.weights;
+      if (r < w[0]) this._press('punch');
+      else if (r < w[0] + w[1]) this._press('kick');
+      else this._press('heavy');
+      this.nextAttackAt = this.timer + D.interval[0] + Math.random() * (D.interval[1] - D.interval[0]);
+      this.decisions++;
     }
     return inp;
   }

@@ -160,7 +160,7 @@ console.log('\n[5] Mechanics');
     hitFrames++;
   }
   ok(p2.health === hpBefore - 0, `blocked jab deals no HP loss (${hpBefore}→${p2.health})`);
-  // grab beats block (unblockable)
+  // verified: grab (=heavy) vs a blocking opponent lands the ceil(20%) chip (docs/06 §5.3)
   p1.reset(0); p2.reset(1.0);
   p1.meter = 0;
   for (let i = 0; i < 30; i++) p2.update(dt, { left: true, punchP: false, kickP: false, grabP: false, heavyP: false, specialP: false, up: false, down: false }, p1);
@@ -170,7 +170,7 @@ console.log('\n[5] Mechanics');
     p2.update(dt, { left: true, punchP: false, kickP: false, grabP: false, heavyP: false, specialP: false, up: false, down: false }, p1);
     p1.update(dt, { left: false, right: false, punchP: false, kickP: false, grabP: false, heavyP: false, specialP: false, up: false, down: false }, p2);
   }
-  ok(p2.health < hpBeforeGrab, `grab beats block (${hpBeforeGrab}→${p2.health})`);
+  ok(p2.health < hpBeforeGrab, `grab chips a blocking opponent (${hpBeforeGrab}→${p2.health})`);
   // meter + special
   p1.meter = 100;
   p1.startMove('special');
@@ -194,7 +194,7 @@ console.log('\n[6] AI difficulty');
   for (const [diff, store] of [['easy', (v) => movesEasy = v], ['hard', (v) => movesHard = v]]) {
     const ai = new AIController(p1, diff);
     let actions = 0;
-    p1.reset(0); p2.reset(1.5); // fixed in-range positions; fighters never update
+    p1.reset(0); p2.reset(1.2); // fixed in-range positions (< verified attackDist 1.45); fighters never update
     for (let f = 0; f < 60 * 30; f++) {
       const inp = ai.update(dt, p2, game);
       if (inp.punchP || inp.kickP || inp.heavyP || inp.specialP) actions++;

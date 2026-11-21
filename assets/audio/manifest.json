@@ -1,0 +1,22 @@
+{
+  "di_teka": "di_teka.mp3",
+  "ko": "ko.mp3",
+  "fight": "fight.mp3",
+  "round1": "round1.mp3",
+  "round2": "round2.mp3",
+  "round3": "round3.mp3",
+  "timeup": "timeup.mp3",
+  "victory": "victory.mp3",
+  "trainon": "trainon.mp3",
+  "trainoff": "trainoff.mp3",
+  "kaka_intro": "kaka_intro.mp3",
+  "kaka_special": "kaka_special.mp3",
+  "kaka_taunt": "kaka_taunt.mp3",
+  "kaka_win": "kaka_win.mp3",
+  "kaka_lose": "kaka_lose.mp3",
+  "por_intro": "por_intro.mp3",
+  "por_special": "por_special.mp3",
+  "por_taunt": "por_taunt.mp3",
+  "por_win": "por_win.mp3",
+  "por_lose": "por_lose.mp3"
+}

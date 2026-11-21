@@ -1,0 +1,35 @@
+{
+  "name": "di-tekaa",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "python3 -m http.server 8000 --bind 0.0.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kkchetan3-web/Di-tekaa.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kkchetan3-web/Di-tekaa/issues"
+  },
+  "homepage": "https://github.com/kkchetan3-web/Di-tekaa#readme",
+  "dependencies": {
+    "three": "^0.160.0"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@capacitor/android": "^6.2.3",
+    "@capacitor/cli": "^6.2.3",
+    "@capacitor/core": "^6.2.3",
+    "@fontsource/protest-riot": "^5.3.0",
+    "playwright-core": "^1.49.1"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "tool": "rea analyze-javascript-application",
+  "rea_version": "6.10.1",
+  "node_version": "v24.22.1",
+  "command": "rea analyze-javascript-application /home/user/Di-tekaa/src --json",
+  "executed": "2026-11-21T13:54:39.526Z",
+  "exit_code": 0,
+  "evidence_id": "ev_710e99762877a07ed2be2ce39cdc6d55162f1c50faa593f0fcf8a28fd1fdccae",
+  "predicate": "rea.javascript-application-analysis",
+  "root_sha256": "f7e023c8dc8b66914a522cb7e3db91accea727616657e5452abf9a6eaec05d11",
+  "integrity_contradictions": [],
+  "totals": {
+    "nodes": 109,
+    "observations": 139
+  },
+  "node_kinds": {
+    "javascript-module": 93,
+    "endpoint": 2,
+    "javascript-asset": 12,
+    "storage": 1,
+    "artifact": 1
+  },
+  "exports_per_file": {
+    "config.js": 13,
+    "animator.js": 2,
+    "editor.js": 1,
+    "camera.js": 2,
+    "partial": 1,
+    "characters.js": 2,
+    "audio.js": 2,
+    "ui.js": 1,
+    "assets/audio/manifest.json": 1,
+    "combat.js": 2,
+    "arenas.js": 1,
+    "game.js": 2,
+    "enhanced/main.js": 1,
+    "ai.js": 1
+  },
+  "coverage": {
+    "complete": 76,
+    "partial": 63,
+    "other": 0
+  },
+  "note": "Raw 33MB Evidence JSON reproducible with the command above (REA 6.10.1 on Node v24.22.1); sha256 of root artifact recorded for verification."
+}

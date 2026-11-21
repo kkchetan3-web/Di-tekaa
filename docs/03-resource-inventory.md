@@ -47,7 +47,7 @@ Rule of this project: **every asset is either (a) written by us, (b) procedurall
 | por_taunt | por_taunt.mp3 | Por | "Susegad finished? Come, come!" |
 | por_win | por_win.mp3 | Por | "Yesss! Ranyalo wins! Who is next?" |
 
-Pending batch 2: round1/2/3, timeup, victory, trainon, trainoff, kaka_lose, por_lose, fight.
+Batch 2 (generated, wired): fight ("Round one! FIGHT!"), round1/2/3 ("Round one!" / "Round two!" / "Final round!"), timeup ("Time up!"), victory ("Flawless governance! The people have spoken!"), trainon/trainoff ("Training mode! Relax and practise." / "Training over. Back to the assembly!"), kaka_lose ("This defeat… will be reviewed by the committee."), por_lose ("Ayyyy! Rematch! One more, one more!"). **Full set = 20 clips, all original parody scripts** — see `assets/audio/manifest.json`.
 
 ## Politician recordings policy (explicit)
 

@@ -8,7 +8,7 @@ Independent reconstruction of **Di Tekaaaa!** (https://diteka.goamemeproject.com
 
 | # | Stage | Status | Evidence / Output |
 |---|-------|--------|-------------------|
-| 1 | Investigate the original game (live site, UI, controls, systems) | ✅ done | `docs/01-original-game-investigation.md` |
+| 1 | Investigate the original game (live site, UI, controls, systems) | ✅ done + **REA-mandated deepening (see `docs/06-rea-investigation.md`)** — full HTML source, stylesheet, manifest, verified design language | `docs/01-original-game-investigation.md`, `docs/06-rea-investigation.md` |
 | 2 | Identify original characters & political identities | ✅ done (2/2 playable roster) | `docs/02-character-research.md` |
 | 3 | Research public photos, footage, mannerisms, voice references | ✅ done | `docs/02-character-research.md`, `docs/reference/` |
 | 4 | Resource inventory + licensing assessment | ✅ living doc | `docs/03-resource-inventory.md` |

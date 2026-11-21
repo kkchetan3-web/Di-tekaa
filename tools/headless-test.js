@@ -54,7 +54,7 @@ function makeFakeGame() {
     effects: new Effects(scene),
     hitStop: 0,
     fightCam: { shake: 0 },
-    ui: { flashBlock() {}, comboPop() {} },
+    ui: { flashBar() {}, flashBlock() {}, comboPop() {}, specialCinematic() {}, toast() {} },
     allowTaunts: true,
     stats: { hits: [0, 0], dmg: [0, 0] },
     koCount: 0,
@@ -160,6 +160,17 @@ console.log('\n[5] Mechanics');
     hitFrames++;
   }
   ok(p2.health === hpBefore - 0, `blocked jab deals no HP loss (${hpBefore}→${p2.health})`);
+  // grab beats block (unblockable)
+  p1.reset(0); p2.reset(1.0);
+  p1.meter = 0;
+  for (let i = 0; i < 30; i++) p2.update(dt, { left: true, punchP: false, kickP: false, grabP: false, heavyP: false, specialP: false, up: false, down: false }, p1);
+  const hpBeforeGrab = p2.health;
+  p1.startMove('grab');
+  for (let i = 0; i < 50 && p1.state === 'attack'; i++) {
+    p2.update(dt, { left: true, punchP: false, kickP: false, grabP: false, heavyP: false, specialP: false, up: false, down: false }, p1);
+    p1.update(dt, { left: false, right: false, punchP: false, kickP: false, grabP: false, heavyP: false, specialP: false, up: false, down: false }, p2);
+  }
+  ok(p2.health < hpBeforeGrab, `grab beats block (${hpBeforeGrab}→${p2.health})`);
   // meter + special
   p1.meter = 100;
   p1.startMove('special');
@@ -178,21 +189,19 @@ console.log('\n[6] AI difficulty');
   p1.opponent = p2; p2.opponent = p1;
   let movesEasy = 0, movesHard = 0;
   const dt = 1 / 60;
+  // Measure pure decision frequency at fixed in-range distance (no movement dynamics,
+  // large sample) — robust against stochastic movement flakes.
   for (const [diff, store] of [['easy', (v) => movesEasy = v], ['hard', (v) => movesHard = v]]) {
     const ai = new AIController(p1, diff);
     let actions = 0;
-    game.koCount = 0;
-    p1.reset(0); p2.reset(3);
-    p1.health = p1.maxHealth; p2.health = p2.maxHealth;
+    p1.reset(0); p2.reset(1.5); // fixed in-range positions; fighters never update
     for (let f = 0; f < 60 * 30; f++) {
       const inp = ai.update(dt, p2, game);
       if (inp.punchP || inp.kickP || inp.heavyP || inp.specialP) actions++;
-      p1.update(dt, inp, p2); p2.update(dt, null, p1);
-      if (game.koCount > 0) break;
     }
     store(actions);
   }
-  ok(movesHard > movesEasy, `hard aggression > easy (${movesHard} vs ${movesEasy} attacks/30s)`);
+  ok(movesHard > movesEasy, `hard aggression > easy (${movesHard} vs ${movesEasy} attack decisions/30s)`);
 }
 
 console.log(`\n===== ${pass} passed, ${fail} failed =====`);

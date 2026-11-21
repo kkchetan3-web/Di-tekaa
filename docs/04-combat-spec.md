@@ -18,7 +18,7 @@ P2 (PLAY A FRIEND — reconstructed): `←/→` move · `↑` jump · `↓` crou
 | Kick | 0.14 | 0.10 | 0.20 | 10 | 1.95 | +10 / +14 | longer reach, slower |
 | Heavy | 0.26 | 0.12 | 0.34 | 18 | 2.10 | +14 / +18 | knockback, −35% dmg when blocked |
 | Special | 0.22 | 0.45 | 0.40 | 28 | 2.4 | costs FULL meter | character-specific motion, knockdown |
-| Throw (P2 only in enhanced) | — | — | — | — | — | — | enhanced edition only |
+| Grab | 0.16 | 0.10 | 0.30 | 12 | 1.35 | +12 / +16 | **unblockable** throw; verified mobile GRAB button exists in original (docs/06 §4.4); behaviour inferred; keyboard-unassigned in faithful edition |
 
 - **Block**: hold away from opponent; blocks high+mid; blocked hit ⇒ 0 dmg (chip 1 on heavy/special), blockstun 0.18–0.30s, pushback.
 - **Hitstun** 0.28–0.45s scaled by damage; **knockback** 0.8–2.4 m heavy/special; **hit-stop** freeze 60–110 ms for impact feel.

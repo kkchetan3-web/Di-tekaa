@@ -6,25 +6,25 @@ import { boot } from '../game.js';
 const game = boot(document.getElementById('game'));
 window.GAME_BEST_OF = window.GAME_BEST_OF || 3;
 
-// --- BEST OF 3/5 toggle on the select screen ---------------------------------
+// --- BEST OF 3/5 toggle on the landing screen ---------------------------------
 function addBestOfRow() {
-  const diffRow = document.getElementById('diff-row');
-  if (!diffRow) return;
-  const label = document.createElement('div');
-  label.className = 'row-label';
-  label.textContent = 'MATCH LENGTH';
+  const diffChips = document.getElementById('ldDiffChips');
+  if (!diffChips) return;
+  const group = document.createElement('div');
+  group.className = 'ld-group';
+  group.innerHTML = '<span>MATCH</span>';
   const row = document.createElement('div');
-  row.id = 'bestof-row';
-  row.style.cssText = 'display:flex;gap:8px';
+  row.className = 'ld-row';
   row.innerHTML = `
-    <button class="dcard bocard picked" data-bo="3">BEST OF 3</button>
-    <button class="dcard bocard" data-bo="5">BEST OF 5</button>`;
-  diffRow.parentElement.insertBefore(label, diffRow.nextSibling);
-  diffRow.parentElement.insertBefore(row, label.nextSibling);
+    <button class="ld-chip bocard on" data-bo="3">BO3</button>
+    <button class="ld-chip bocard" data-bo="5">BO5</button>`;
+  group.appendChild(row);
+  diffChips.parentElement.parentElement.insertBefore(group, diffChips.parentElement.nextSibling);
   row.querySelectorAll('.bocard').forEach(b => b.addEventListener('click', () => {
     window.GAME_BEST_OF = +b.dataset.bo;
-    row.querySelectorAll('.bocard').forEach(x => x.classList.toggle('picked', x === b));
+    row.querySelectorAll('.bocard').forEach(x => x.classList.toggle('on', x === b));
     game.audio.menuMove();
+    if (game.ui && game.ui.syncLanding) game.ui.syncLanding();
   }));
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addBestOfRow);

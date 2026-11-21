@@ -111,10 +111,19 @@ export class Fighter {
       const clip = this.charId === 'kaka' ? 'specialKaka' : 'specialPor';
       this.animator.play(clip);
       this.game.effects.ring(new THREE.Vector3(this.x, 1, this.z), this.charId === 'kaka' ? 0xff7733 : 0xdd3344);
+    } else if (name === 'grab') {
+      // close-range throw (mobile GRAB button; behaviour inferred — docs/06 §7)
+      this.animator.play('punch2');
     } else {
       this.animator.play(name === 'punch' && this.chainCount % 2 === 1 ? 'punch2' : name);
     }
-    if (name === 'special') this.shout('special');
+    if (name === 'special') {
+      this.shout('special');
+      // verified cinematic systems: letterbox + title card + flash (docs/06 §4.4)
+      if (this.game.ui && this.game.ui.specialCinematic) this.game.ui.specialCinematic(mv.name);
+    } else if (name === 'grab') {
+      this.shout('taunt');
+    }
   }
 
   shout(kind) {
@@ -219,6 +228,7 @@ export class Fighter {
           if (input.punchP) this.queueAttack('punch');
           else if (input.kickP) this.queueAttack('kick');
           else if (input.heavyP) this.queueAttack('heavy');
+          else if (input.grabP) this.queueAttack('grab');
           else if (input.specialP && this.meter >= 100) this.queueAttack('special');
           else if (input.tauntP && this.game && this.game.allowTaunts) this.doTaunt();
         }
@@ -301,7 +311,7 @@ export class Fighter {
 
   receiveHit(mv, attacker, game) {
     const dir = Math.sign(this.x - attacker.x) || attacker.side;
-    if (this.blocking || (this.grounded && this.holdingBack && !this.busy)) {
+    if (!mv.unblockable && (this.blocking || (this.grounded && this.holdingBack && !this.busy))) {
       // BLOCKED
       const chip = (mv.name === 'heavy' || mv.name === 'special') ? Math.max(1, Math.round(mv.dmg * 0.1)) : 0;
       this.health = Math.max(0, this.health - chip);
@@ -313,7 +323,6 @@ export class Fighter {
       game.effects.burst(new THREE.Vector3((this.x + attacker.x) / 2, 1.15 + (this.y || 0), 0), 0x6ab0ff, 8, 3);
       audio.block();
       this.meter = Math.min(100, this.meter + 8);
-      game.ui.flashBlock(this.side);
       return;
     }
     // CLEAN HIT
@@ -322,9 +331,10 @@ export class Fighter {
     if (attacker.game && attacker.game.stats) {
       const idx = attacker.side === 1 ? 0 : 1;
       attacker.game.stats.hits[idx]++;
-      attacker.game.stats.dmg[idx] += this.blocking ? 0 : dmg;
+      attacker.game.stats.dmg[idx] += dmg;
     }
     this.model.setMood('hurt');
+    game.ui.flashBar(this.side); // verified bar.hurt flash
     attacker.meter = Math.min(100, attacker.meter + mv.meter);
     this.meter = Math.min(100, this.meter + mv.meterTake);
     if (attacker.meter >= 100 && attacker.meterPrev < 100) audio.meterFull();
@@ -344,7 +354,7 @@ export class Fighter {
     if (heavy) audio.heavy(); else audio.punch();
     audio.hit();
 
-    game.ui.comboPop(attacker);
+    game.ui.flashBar(this.side); // hitShake + bar flash on every clean hit
     if (this.health <= 0) this.knockOut(game);
   }
 

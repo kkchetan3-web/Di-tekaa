@@ -24,7 +24,8 @@ export class AudioEngine {
     return this.ctx;
   }
 
-  setMuted(m) { this.muted = m; if (this.master) this.master.gain.value = m ? 0 : 0.9; }
+  setMuted(m) { this.muted = m; if (this.master) this.master.gain.value = m ? 0 : (this.volume ?? 0.9); }
+  setVolume(v) { this.volume = v; if (this.master && !this.muted) this.master.gain.value = v; }
 
   // ---- low-level helpers -------------------------------------------------
   _noiseBuffer(seconds = 1) {

@@ -86,7 +86,9 @@ export class AIController {
       return inp;
     }
     if (dist > wantDist + 0.2) {
-      if (r < aggr) { // dash in with attack
+      const kickRange = this.f.def.moves.kick.range + 0.3;
+      if (r < aggr) { // dash in with attack (kick if it already reaches)
+        if (dist < kickRange) this._press('kick');
         this.plan = { type: 'approach' };
         if (opp.x > f.x) inp.right = true; else inp.left = true;
         this.timer *= 0.5;

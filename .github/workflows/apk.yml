@@ -31,8 +31,8 @@ jobs:
       - name: Build web bundle (www/)
         run: bash tools/make-www.sh
 
-      - name: Sync web bundle into the Android project
-        run: npx cap copy android
+      - name: Sync web bundle into the Android project (copy + regenerate native bridge)
+        run: npx cap sync android
 
       - name: Accept Android SDK licenses
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true

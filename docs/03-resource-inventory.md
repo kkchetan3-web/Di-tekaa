@@ -32,6 +32,23 @@ Rule of this project: **every asset is either (a) written by us, (b) procedurall
 | Fontainhas street | image | Outlook Traveller/Tripoto/iStock | © owners — research reference | Arena 2 design | Acquired (docs/reference) |
 | Sawant speech themes ("double-engine government", etc.) | text | ANI / India Today / TOI coverage | public news reporting — cited in docs/02 | dialogue *inspiration* only (all lines rewritten as parody) | Documented |
 
+### Voice clip manifest (batch 1 — generated, wired)
+
+| Clip id | File | Voice role | Text (original parody script) |
+|---|---|---|---|
+| di_teka | di_teka.mp3 | announcer (voice-00) | "Di tekaaaa! Fight!" |
+| ko | ko.mp3 | announcer | "K.O.!" |
+| kaka_intro | kaka_intro.mp3 | Kaka (voice-01) | "Hello-hello! The honourable doctor is in the house. Discipline first — then, the fighting." |
+| kaka_special | kaka_special.mp3 | Kaka | "Double engine… FULL POWER!" |
+| kaka_taunt | kaka_taunt.mp3 | Kaka | "Ek point! Your proposal… is rejected!" |
+| kaka_win | kaka_win.mp3 | Kaka | "Victory! The government is stable. Please collect your sweets at the exit." |
+| por_intro | por_intro.mp3 | Por (voice-02) | "Ranyalo Por! Ready to fight — no parking only!" |
+| por_special | por_special.mp3 | Por | "Rann-fury! Spin spin spin!" |
+| por_taunt | por_taunt.mp3 | Por | "Susegad finished? Come, come!" |
+| por_win | por_win.mp3 | Por | "Yesss! Ranyalo wins! Who is next?" |
+
+Pending batch 2: round1/2/3, timeup, victory, trainon, trainoff, kaka_lose, por_lose, fight.
+
 ## Politician recordings policy (explicit)
 
 - **No** audio recordings of real politicians are included, downloaded, or cloned.

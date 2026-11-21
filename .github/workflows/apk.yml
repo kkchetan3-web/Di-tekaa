@@ -6,6 +6,10 @@ on:
     branches: [main]
     paths: ['android/**', 'tools/make-www.sh', '.github/workflows/apk.yml', 'index.html', 'enhanced.html', 'src/**', 'vendor/**', 'assets/**']
 
+permissions:
+  contents: write
+  issues: write
+
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -33,14 +37,29 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
-      - name: Assemble debug APK
+      - name: Assemble debug APK (log captured)
         run: |
           chmod +x android/gradlew
-          android/gradlew -p android assembleDebug --no-daemon
+          set -o pipefail
+          android/gradlew -p android assembleDebug --no-daemon 2>&1 | tee /tmp/build.log
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: DiTekaaaa-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+      - name: On failure — report log tail as issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tail -c 24000 /tmp/build.log > /tmp/tail.txt || echo "no log captured" > /tmp/tail.txt
+          gh issue create --title "APK build failed (${GITHUB_SHA:0:7})" \
+            --body "$(cat /tmp/tail.txt)" || true
+
+      - name: On success — publish APK as a release
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk DiTekaaaa-debug.apk
+          gh release create "apk-v${GITHUB_RUN_NUMBER}" DiTekaaaa-debug.apk \
+            --title "Di Tekaaaa! APK (build ${GITHUB_RUN_NUMBER})" \
+            --notes "Debug APK of the Di Tekaaaa! reconstruction (com.ditekaaaa.game).
+          Install: download DiTekaaaa-debug.apk on an Android device and open it
+          (allow 'install unknown apps' for your browser/file manager). Landscape, minSdk 22."
